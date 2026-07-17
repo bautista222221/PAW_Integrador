@@ -13,15 +13,19 @@
 
                 <?php if ($resultado['puntuacion'] > 6): ?>
                     <p>🎉 ¡Felicitaciones! Has aprobado el curso y puedes obtener tu certificado.</p>
-                    <a class="btn-resolver" href="/descargar-certificado?curso=<?= urlencode($resultado['curso_id']) ?>"><i class="fa-solid fa-award"></i> Descargar Certificado</a>
+                    <div class="resultados-actions">
+                        <a class="btn-resolver btn-certificado" href="/descargar-certificado?curso=<?= urlencode($resultado['curso_id']) ?>"><i class="fa-solid fa-award"></i> Descargar Certificado</a>
+                        <a class="btn-resolver btn-secundario" href="/cursos"><i class="fa-solid fa-book-open"></i> Volver a Cursos</a>
+                    </div>
                 <?php else: ?>
-                    <section>
-                        <p>😕 No alcanzaste la puntuación necesaria para aprobar.</p>
-                        <form action="/resolver-evaluacion" method="get">
+                    <p>😕 No alcanzaste la puntuación necesaria para aprobar.</p>
+                    <div class="resultados-actions">
+                        <form action="/resolver-evaluacion" method="get" style="display: inline-block; margin: 0;">
                             <input type="hidden" name="curso" value="<?= htmlspecialchars($resultado['curso_id']) ?>">
-                            <button class="btn-resolver" type="submit">Volver a intentar el examen</button>
+                            <button class="btn-resolver btn-reintentar" type="submit">Volver a intentar el examen</button>
                         </form>
-                    </section>
+                        <a class="btn-resolver btn-secundario" href="/cursos"><i class="fa-solid fa-book-open"></i> Volver a Cursos</a>
+                    </div>
                 <?php endif; ?>
             <?php else: ?>
                 <p>No hay resultados disponibles. Por favor, realiza una evaluación.</p>

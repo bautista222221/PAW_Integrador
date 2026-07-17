@@ -114,7 +114,7 @@
         art.innerHTML = `
         <input type="hidden" name="modulos[${moduloIndex}][id]" value="${idVal}">
         <?php if (isset($curso)): ?>
-            <input type="hidden" name="modulos[${moduloIndex}][url_existente]" value="${archivoVal}">
+            <input type="hidden" name="modulos[${moduloIndex}][url_existente]" id="url-existente-${moduloIndex}" value="${archivoVal}">
         <?php endif; ?>
 
         <div class="mb-3">
@@ -138,7 +138,11 @@
             <div class="mb-2">
                 <label for="contenido-archivo-${moduloIndex}" class="form-label">Subir archivo (opcional)</label>
                 <?php if (isset($curso)): ?>
-                    ${archivoVal ? `<div class="mb-1" style="font-size: 0.9rem; opacity: 0.9;">Archivo actual: <a href="${archivoVal}" target="_blank" style="color: var(--color-primary); text-decoration: underline;">${archivoVal.split('/').pop()}</a></div>` : ''}
+                    ${archivoVal ? `
+                    <div id="archivo-info-box-${moduloIndex}" class="mb-1" style="font-size: 0.9rem; opacity: 0.9; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                        Archivo actual: <a href="${archivoVal}" target="_blank" style="color: var(--color-primary); text-decoration: underline; word-break: break-all;">${archivoVal.split('/').pop()}</a>
+                        <button type="button" onclick="eliminarRecursoArchivo(${moduloIndex})" style="padding: 2px 8px; font-size: 0.8rem; border-radius: 4px; border: 1px solid rgba(239, 68, 68, 0.3); color: var(--color-danger); background-color: rgba(239, 68, 68, 0.1); cursor: pointer; transition: all 0.2s;"><i class="fa-solid fa-trash-can"></i> Quitar archivo</button>
+                    </div>` : ''}
                 <?php endif; ?>
                 <input type="file" class="form-control" id="contenido-archivo-${moduloIndex}" name="modulos[${moduloIndex}][archivo]" onchange="handleArchivoInput(${moduloIndex})">
             </div>
@@ -219,6 +223,37 @@
             linkInput.disabled = true;
         } else {
             linkInput.disabled = false;
+        }
+    }
+
+    function eliminarRecursoArchivo(index) {
+        if (!confirm("¿Estás seguro de que deseas eliminar este archivo adjunto?")) {
+            return;
+        }
+        
+        // 1. Poner en blanco el input hidden de url_existente para que PHP entienda que se eliminó
+        const inputUrlExistente = document.getElementById(`url-existente-${index}`);
+        if (inputUrlExistente) {
+            inputUrlExistente.value = "";
+        }
+        
+        // 2. Ocultar / borrar el bloque visual del archivo actual
+        const infoBox = document.getElementById(`archivo-info-box-${index}`);
+        if (infoBox) {
+            infoBox.remove();
+        }
+        
+        // 3. Habilitar y limpiar el input de link y de archivo
+        const linkInput = document.getElementById(`contenido-link-${index}`);
+        const fileInput = document.getElementById(`contenido-archivo-${index}`);
+        
+        if (linkInput) {
+            linkInput.disabled = false;
+            linkInput.value = "";
+        }
+        if (fileInput) {
+            fileInput.disabled = false;
+            fileInput.value = "";
         }
     }
 

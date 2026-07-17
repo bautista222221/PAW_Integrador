@@ -108,6 +108,30 @@ class ControladorCursos extends Controlador
         $contenido = $this->embedRecurso($modulo["tipo"], $modulo["url"]);
         $this->modeloInstancia->marcarCompletado($moduloId, $cursoId, $usuarioId);
         
+        // Obtener y ordenar todos los módulos del curso por su campo orden
+        $modulos = $this->modeloInstancia->getModulosCurso($cursoId);
+        usort($modulos, function($a, $b) {
+            return (int)($a['orden'] ?? 0) <=> (int)($b['orden'] ?? 0);
+        });
+
+        // Determinar índices de navegación
+        $indiceActual = -1;
+        foreach ($modulos as $key => $m) {
+            if ((int)$m['id'] === (int)$moduloId) {
+                $indiceActual = $key;
+                break;
+            }
+        }
+
+        $moduloAnterior = ($indiceActual > 0) ? $modulos[$indiceActual - 1] : null;
+        $moduloSiguiente = ($indiceActual < count($modulos) - 1) ? $modulos[$indiceActual + 1] : null;
+        $ordenActual = $indiceActual + 1;
+        $totalModulos = count($modulos);
+
+        // Obtener el título del curso para las migas de pan
+        $curso = $this->modeloInstancia->get($cursoId);
+        $cursoTitulo = $curso->campos['titulo'] ?? 'Curso';
+
         $titulo = "PAD - " . ($modulo["titulo"] ?? "Unidad");
         require $this->viewsDir . 'ver-unidad.view.php';
     }

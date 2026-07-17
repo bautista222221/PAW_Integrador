@@ -38,22 +38,27 @@
                 <ul>
                     <?php foreach ($modulos as $modulo): ?>
                         <li class="curso-card">
-                            <?php if ($inscripto): ?>
-                                <a href="/ver-modulo?modulo=<?= urlencode($modulo['id']) ?>">
-                                    <?= htmlspecialchars($modulo['titulo']) ?>
-                                </a>
-                            <?php else: ?>
-                                <span class="modulo-bloqueado">
-                                    <i class="fa-solid fa-lock"></i> <?= htmlspecialchars($modulo['titulo']) ?>
-                                </span>
-                            <?php endif; ?>
-                            <p><?= htmlspecialchars($modulo['descripcion']) ?></p>
-                            <?php if ($inscripto): ?>
-                                <?php if (!empty($modulo['completado'])): ?>
-                                    <p class="estado-modulo completado">✅ Completado</p>
+                            <div class="modulo-info">
+                                <?php if ($inscripto): ?>
+                                    <a class="modulo-titulo" href="/ver-modulo?modulo=<?= urlencode($modulo['id']) ?>">
+                                        <?= htmlspecialchars($modulo['titulo']) ?>
+                                    </a>
                                 <?php else: ?>
-                                    <p class="estado-modulo incompleto">❌ No completado</p>
+                                    <span class="modulo-bloqueado">
+                                        <i class="fa-solid fa-lock"></i> <?= htmlspecialchars($modulo['titulo']) ?>
+                                    </span>
                                 <?php endif; ?>
+                                <p class="modulo-desc"><?= htmlspecialchars($modulo['descripcion']) ?></p>
+                            </div>
+
+                            <?php if ($inscripto): ?>
+                                <div class="modulo-estado-wrapper">
+                                    <?php if (!empty($modulo['completado'])): ?>
+                                        <span class="estado-modulo completado">✅ Completado</span>
+                                    <?php else: ?>
+                                        <span class="estado-modulo incompleto">❌ No completado</span>
+                                    <?php endif; ?>
+                                </div>
                             <?php endif; ?>
                         </li>
                     <?php endforeach; ?>
