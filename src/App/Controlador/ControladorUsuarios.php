@@ -66,29 +66,29 @@ class ControladorUsuarios extends Controlador
         // Validación mínima de formato
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $_SESSION['error'] = '⚠️ El correo electrónico ingresado no es válido.';
-            header("Location: /login");
+            $this->redireccionar("/login");
             return;
         }
         if (empty($password)) {
             $_SESSION['error'] = '⚠️ La contraseña no puede estar vacía.';
-            header("Location: /login");
+            $this->redireccionar("/login");
             return;
         }
         if (strlen($password) < 8) {
             $_SESSION['error'] = '⚠️ La contraseña debe tener al menos 8 caracteres.';
-            header("Location: /login");
+            $this->redireccionar("/login");
             return;
         }
 
         $usuario = $this->modeloInstancia->autenticar($email, $password);
         if (empty($usuario)) {
             $_SESSION['error'] = '⚠️ Correo electrónico o contraseña incorrectos.';
-            header("Location: /login");
+            $this->redireccionar("/login");
             return;
         }
         $_SESSION['usuario'] = $usuario->campos;
         $_SESSION['success'] = '✅ ¡Sesión iniciada exitosamente!';
-        header("Location: /");
+        $this->redireccionar("/");
         exit();
     }
 
@@ -109,7 +109,7 @@ class ControladorUsuarios extends Controlador
             empty($request->get('inputConfirmarPassword'))
         ) {
             $_SESSION['error'] = '⚠️ Todos los campos obligatorios deben completarse.';
-            header("Location: /register");
+            $this->redireccionar("/register");
             return;
         }
         // Recoger los datos del formulario
@@ -125,38 +125,38 @@ class ControladorUsuarios extends Controlador
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $_SESSION['error'] = '⚠️ El correo electrónico ingresado no es válido.';
-            header("Location: /register");
+            $this->redireccionar("/register");
             return;
         }
 
         if (!preg_match("/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/", $nombre)) {
             $_SESSION['error'] = '⚠️ El nombre ingresado no es válido.';
-            header("Location: /register");
+            $this->redireccionar("/register");
             return;
         }
 
         if (strlen($password) < 8) {
             $_SESSION['error'] = '⚠️ La contraseña debe tener al menos 8 caracteres.';
-            header("Location: /register");
+            $this->redireccionar("/register");
             return;
         }
 
         if ($password !== $confirmarPassword) {
             $_SESSION['error'] = '⚠️ Las contraseñas no coinciden.';
-            header("Location: /register");
+            $this->redireccionar("/register");
             return;
         }
 
         if ($this->modeloInstancia->existeEmail($email)) {
             $_SESSION['error'] = '⚠️ El correo electrónico ya está registrado.';
-            header("Location: /register");
+            $this->redireccionar("/register");
             return;
         }
 
         // Crear un nuevo usuario
         if (!$this->modeloInstancia->crear($datos)) {
             $_SESSION['error'] = '⚠️ Ocurrió un error al registrar el usuario.';
-            header("Location: /register");
+            $this->redireccionar("/register");
             return;
         }
         // Auto-login del usuario recién registrado
@@ -166,7 +166,7 @@ class ControladorUsuarios extends Controlador
         }
         
         $_SESSION['success'] = '✅ ¡Registro exitoso!';
-        header("Location: /user-profile");
+        $this->redireccionar("/user-profile");
         exit();
     }
 

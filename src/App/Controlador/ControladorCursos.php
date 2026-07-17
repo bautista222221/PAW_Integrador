@@ -26,7 +26,7 @@ class ControladorCursos extends Controlador
     public function validarSesion()
     {
         if (!isset($_SESSION['usuario'])) {
-            header("Location: /login");
+            $this->redireccionar("/login");
             exit;
         }
     }
@@ -55,7 +55,7 @@ class ControladorCursos extends Controlador
         
         $cursoData = $data['curso'];
         if (!$cursoData) {
-            header("Location: /cursos");
+            $this->redireccionar("/cursos");
             exit;
         }
         
@@ -100,7 +100,7 @@ class ControladorCursos extends Controlador
         // Validar inscripción del usuario en este curso
         $inscripto = $this->modeloInstancia->existeInscripcion($usuarioId, $cursoId);
         if (!$inscripto) {
-            header("Location: /curso?id=" . urlencode($cursoId));
+            $this->redireccionar("/curso?id=" . urlencode($cursoId));
             exit;
         }
 
@@ -112,7 +112,7 @@ class ControladorCursos extends Controlador
     public function agregarCurso()
     {
         if (!$this->validarAdmin()) {
-            header("Location: /login");
+            $this->redireccionar("/login");
             exit;
         }
         $titulo = "PAD - Agregar Curso";
@@ -121,7 +121,7 @@ class ControladorCursos extends Controlador
     public function procesarAgregarCurso()
     {
         if (!$this->validarAdmin()) {
-            header("Location: /login");
+            $this->redireccionar("/login");
             exit;
         }
         global $request;
@@ -133,16 +133,7 @@ class ControladorCursos extends Controlador
         $duracion = (int) $request->get("duracion");
 
         // Imagen del curso
-        $imagenCurso = $_FILES['imagen']['name'] ?? null;
-        $rutaImagenCurso = null;
-        $carpetaImagenes = __DIR__ . '/../../../public/uploads/';
-
-        if ($imagenCurso && $_FILES['imagen']['error'] === 0) {
-            $destinoImagen = $carpetaImagenes . basename($_FILES['imagen']['name']);
-            if (move_uploaded_file($_FILES['imagen']['tmp_name'], $destinoImagen)) {
-                $rutaImagenCurso = '/uploads/' . basename($_FILES['imagen']['name']);
-            }
-        }
+        $rutaImagenCurso = $this->procesarArchivoSubido($_FILES['imagen'] ?? []);
 
         $datosCurso = [
             'titulo' => $tituloCurso,
@@ -191,14 +182,10 @@ class ControladorCursos extends Controlador
                 !empty($archivosModulo['name'][$indice]['archivo']) &&
                 $archivosModulo['error'][$indice]['archivo'] === 0
             ) {
-
-                $nombreArchivo = basename($archivosModulo['name'][$indice]['archivo']);
-                $tmpArchivo = $archivosModulo['tmp_name'][$indice]['archivo'];
-                $rutaDestino = $carpetaImagenes . $nombreArchivo;
-
-                if (move_uploaded_file($tmpArchivo, $rutaDestino)) {
+                $rutaSubida = $this->procesarArchivoSubido($archivosModulo, $indice);
+                if ($rutaSubida) {
                     $contenidoTipo = 'archivo';
-                    $contenidoUrl = '/uploads/' . $nombreArchivo;
+                    $contenidoUrl = $rutaSubida;
                 }
             }
             if(is_null($contenidoUrl)){
@@ -230,7 +217,7 @@ class ControladorCursos extends Controlador
     public function editarCurso()
     {
         if (!$this->validarAdmin()) {
-            header("Location: /login");
+            $this->redireccionar("/login");
             exit;
         }
 
@@ -257,7 +244,7 @@ class ControladorCursos extends Controlador
     public function procesarEditarCurso()
     {
         if (!$this->validarAdmin()) {
-            header("Location: /login");
+            $this->redireccionar("/login");
             exit;
         }
 
@@ -282,13 +269,10 @@ class ControladorCursos extends Controlador
 
         // Imagen del curso (preservar anterior si no se sube una nueva)
         $rutaImagenCurso = $curso->campos['imagen'];
-        $carpetaImagenes = __DIR__ . '/../../../public/uploads/';
-
         if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === 0) {
-            $nombreImagen = basename($_FILES['imagen']['name']);
-            $destinoImagen = $carpetaImagenes . $nombreImagen;
-            if (move_uploaded_file($_FILES['imagen']['tmp_name'], $destinoImagen)) {
-                $rutaImagenCurso = '/uploads/' . $nombreImagen;
+            $rutaSubidaImagen = $this->procesarArchivoSubido($_FILES['imagen']);
+            if ($rutaSubidaImagen) {
+                $rutaImagenCurso = $rutaSubidaImagen;
             }
         }
 
@@ -342,12 +326,9 @@ class ControladorCursos extends Controlador
                 !empty($archivosModulo['name'][$indice]['archivo']) &&
                 $archivosModulo['error'][$indice]['archivo'] === 0
             ) {
-                $nombreArchivo = basename($archivosModulo['name'][$indice]['archivo']);
-                $tmpArchivo = $archivosModulo['tmp_name'][$indice]['archivo'];
-                $rutaDestino = $carpetaImagenes . $nombreArchivo;
-
-                if (move_uploaded_file($tmpArchivo, $rutaDestino)) {
-                    $contenidoUrl = '/uploads/' . $nombreArchivo;
+                $rutaSubida = $this->procesarArchivoSubido($archivosModulo, $indice);
+                if ($rutaSubida) {
+                    $contenidoUrl = $rutaSubida;
                 }
             }
 
@@ -463,25 +444,28 @@ class ControladorCursos extends Controlador
             return '<p>No hay recurso para esta unidad.</p>';
         }
 
+        // Sanitizar de forma preventiva para prevenir la inyección de atributos HTML maliciosos
+        $rutaOUrlSegura = htmlspecialchars($rutaOUrl, ENT_QUOTES, 'UTF-8');
+
         switch ($tipo) {
             case 'youtube':
                 // Soporte para ambos formatos
                 if (strpos($rutaOUrl, 'youtube.com/watch?v=') !== false) {
                     parse_str(parse_url($rutaOUrl, PHP_URL_QUERY), $params);
-                    $videoId = htmlspecialchars($params['v'] ?? '');
+                    $videoId = htmlspecialchars($params['v'] ?? '', ENT_QUOTES, 'UTF-8');
                 } else {
-                    $videoId = htmlspecialchars(basename(parse_url($rutaOUrl, PHP_URL_PATH)));
+                    $videoId = htmlspecialchars(basename(parse_url($rutaOUrl, PHP_URL_PATH)), ENT_QUOTES, 'UTF-8');
                 }
                 return "<iframe width=\"560\" height=\"315\" src=\"https://www.youtube.com/embed/{$videoId}\" frameborder=\"0\" allowfullscreen></iframe>";
 
             case 'pdf':
-                return "<embed src=\"{$rutaOUrl}\" type=\"application/pdf\" width=\"100%\" height=\"600px\" />";
+                return "<embed src=\"{$rutaOUrlSegura}\" type=\"application/pdf\" width=\"100%\" height=\"600px\" />";
 
             case 'audio':
-                return "<audio controls src=\"{$rutaOUrl}\">Tu navegador no soporta audio.</audio>";
+                return "<audio controls src=\"{$rutaOUrlSegura}\">Tu navegador no soporta audio.</audio>";
 
             case 'imagen':
-                return "<img src=\"{$rutaOUrl}\" alt=\"Recurso imagen\" style=\"max-width:100%;\" />";
+                return "<img src=\"{$rutaOUrlSegura}\" alt=\"Recurso imagen\" style=\"max-width:100%;\" />";
 
             case 'url':
                 return "
@@ -495,7 +479,7 @@ class ControladorCursos extends Controlador
                             <span class=\"recurso-subtitle\">Recurso complementario en la web</span>
                         </div>
                     </div>
-                    <a href=\"{$rutaOUrl}\" target=\"_blank\" rel=\"noopener\" class=\"btn-descargar-recurso\"><i class=\"fa-solid fa-up-right-from-square\"></i> Abrir enlace</a>
+                    <a href=\"{$rutaOUrlSegura}\" target=\"_blank\" rel=\"noopener\" class=\"btn-descargar-recurso\"><i class=\"fa-solid fa-up-right-from-square\"></i> Abrir enlace</a>
                 </div>";
 
             case 'archivo':
@@ -524,11 +508,11 @@ class ControladorCursos extends Controlador
                             <i class=\"fa-solid {$iconClass}\"></i>
                         </div>
                         <div>
-                            <span class=\"recurso-filename\">{$nombreArchivo}</span>
+                            <span class=\"recurso-filename\">" . htmlspecialchars($nombreArchivo, ENT_QUOTES, 'UTF-8') . "</span>
                             <span class=\"recurso-subtitle\">Archivo de recursos para descargar</span>
                         </div>
                     </div>
-                    <a href=\"{$rutaOUrl}\" download class=\"btn-descargar-recurso\"><i class=\"fa-solid fa-download\"></i> Descargar archivo</a>
+                    <a href=\"{$rutaOUrlSegura}\" download class=\"btn-descargar-recurso\"><i class=\"fa-solid fa-download\"></i> Descargar archivo</a>
                 </div>";
         }
     }
@@ -551,6 +535,36 @@ class ControladorCursos extends Controlador
             $this->modeloInstancia->guardarComentario($datosComentario);
         }
         
-        header("Location: /curso?id=" . urlencode($cursoId));
+        $this->redireccionar("/curso?id=" . urlencode($cursoId));
+    }
+
+    private function procesarArchivoSubido(array $files, $key = null): ?string
+    {
+        $name = $key !== null ? ($files['name'][$key]['archivo'] ?? null) : ($files['name'] ?? null);
+        $tmpName = $key !== null ? ($files['tmp_name'][$key]['archivo'] ?? null) : ($files['tmp_name'] ?? null);
+        $error = $key !== null ? ($files['error'][$key]['archivo'] ?? null) : ($files['error'] ?? null);
+
+        if (!$name || $error !== 0) {
+            return null;
+        }
+
+        $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+
+        // Lista negra de extensiones prohibidas para evitar vulnerabilidad de Ejecución Remota de Código (RCE)
+        $extensionesProhibidas = ['php', 'phtml', 'php3', 'php4', 'php5', 'php7', 'php8', 'phar', 'sh', 'exe', 'cgi', 'pl', 'jsp', 'asp', 'aspx', 'fcgi'];
+        if (in_array($ext, $extensionesProhibidas)) {
+            $ext = 'txt'; // Desarmar el script convirtiéndolo en texto plano inocuo
+        }
+
+        // Generar un nombre único aleatorio para evitar colisiones y sobrescritura de archivos en public/uploads/
+        $nombreUnico = uniqid('file_', true) . '_' . md5($name) . '.' . $ext;
+        $carpetaImagenes = __DIR__ . '/../../../public/uploads/';
+        $destino = $carpetaImagenes . $nombreUnico;
+
+        if (move_uploaded_file($tmpName, $destino)) {
+            return '/uploads/' . $nombreUnico;
+        }
+
+        return null;
     }
 }

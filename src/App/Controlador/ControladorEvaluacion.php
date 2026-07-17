@@ -20,7 +20,7 @@ class ControladorEvaluacion extends Controlador
     public function validarSesion()
     {
         if (!isset($_SESSION['usuario'])) {
-            header("Location: /login");
+            $this->redireccionar("/login");
             exit;
         }
     }
@@ -153,7 +153,7 @@ class ControladorEvaluacion extends Controlador
 
         $usuarioId = $_SESSION["usuario"]["id"];
         if (!$this->modeloInstancia->existeInscripcion($usuarioId, $idCurso)) {
-            header("Location: /curso?id=" . urlencode($idCurso));
+            $this->redireccionar("/curso?id=" . urlencode($idCurso));
             exit;
         }
 
@@ -183,7 +183,7 @@ class ControladorEvaluacion extends Controlador
 
         $usuarioId = $_SESSION["usuario"]["id"];
         if (!$this->modeloInstancia->existeInscripcion($usuarioId, $idCurso)) {
-            header("Location: /curso?id=" . urlencode($idCurso));
+            $this->redireccionar("/curso?id=" . urlencode($idCurso));
             exit;
         }
 
@@ -244,7 +244,7 @@ class ControladorEvaluacion extends Controlador
             'puntuacion' => $puntuacion
         ];
 
-        header("Location: /resultado-evaluacion");
+        $this->redireccionar("/resultado-evaluacion");
         exit;
     }
 

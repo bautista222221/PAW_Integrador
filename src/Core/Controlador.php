@@ -52,4 +52,15 @@ class Controlador{
         $this->modeloInstancia = $modelo;
         
     }
+
+    public function redireccionar(string $url)
+    {
+        if (!headers_sent()) {
+            header("Location: " . $url);
+            exit;
+        } else {
+            echo "<script>window.location.href = '" . $url . "';</script>";
+            exit;
+        }
+    }
 }
