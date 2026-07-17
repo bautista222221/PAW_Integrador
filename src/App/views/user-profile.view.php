@@ -52,9 +52,24 @@
                 <!-- Certificados -->
                 <div>
                     <h3>Certificados</h3>
-                    <ul>
-                        <li>No hay certificados todavía.</li>
-                    </ul>
+                    <?php if (!empty($certificados)): ?>
+                        <ul>
+                            <?php foreach ($certificados as $cert): ?>
+                                <li style="margin-bottom: 0.75rem;">
+                                    <strong><?= htmlspecialchars($cert['curso_titulo']) ?></strong>
+                                    — Nota: <?= htmlspecialchars($cert['nota']) ?>/10
+                                    — <?= date('d/m/Y', strtotime($cert['fecha_aprobado'])) ?>
+                                    <a href="/descargar-certificado?curso=<?= urlencode($cert['curso_id']) ?>" style="color: var(--color-accent-teal); text-decoration: underline; margin-left: 0.5rem;">
+                                        <i class="fa-solid fa-download"></i> Descargar
+                                    </a>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php else: ?>
+                        <ul>
+                            <li>No hay certificados todavía. ¡Aprueba un curso para obtener el tuyo!</li>
+                        </ul>
+                    <?php endif; ?>
                 </div>
             </section>
 

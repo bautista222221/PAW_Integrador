@@ -20,8 +20,8 @@ class ControladorEvaluacion extends Controlador
     public function validarSesion()
     {
         if (!isset($_SESSION['usuario'])) {
-            echo "<script>alert('⚠️ Debes iniciar sesion para ver un curso'); window.location.href = '/login'</script>";
-            return;
+            header("Location: /login");
+            exit;
         }
     }
 
@@ -57,10 +57,15 @@ class ControladorEvaluacion extends Controlador
 
         $preguntas = $request->get("preguntas"); // Esto depende de cómo estés enviando las preguntas
 
+        if (empty($preguntas)) {
+            echo "<script>alert('⚠️ No se puede crear una evaluación sin preguntas. Por favor, agrega al menos una pregunta.'); window.history.back();</script>";
+            return;
+        }
+
         // 1. Insertar evaluación
         $datosEvaluacion = [
             'titulo' => $tituloEvaluacion,
-            'id_curso' => $idCurso,
+            'curso_id' => $idCurso,
         ];
         $evaluacionId = $this->modeloInstancia->crearEvaluacion($datosEvaluacion);
 
@@ -97,20 +102,11 @@ class ControladorEvaluacion extends Controlador
             }
 
             // 3. Insertar opciones para cada pregunta
-            $yaInsertados = [];
-
             foreach ($pregunta['opciones'] as $index => $opcion) {
                 if (!isset($opcion['texto']) && $pregunta['tipo'] !== 'completar') {
                     continue; // evitar el error si no es completar y no hay 'texto'
                 }
     
-                $clave = ($opcion['texto'] ?? '') . '-' . ($opcion['posicion'] ?? '');
-
-                if (in_array($clave, $yaInsertados)) {
-                    continue; // evitar duplicados
-                }
-
-                $yaInsertados[] = $clave;
                 // tu lógica de $datosOpcion...
                 if ($pregunta['tipo'] === 'ordenar') {
                     $datosOpcion = [
@@ -149,15 +145,20 @@ class ControladorEvaluacion extends Controlador
         $this->validarSesion();
 
         $idCurso = $_GET['curso'] ?? '';
-        
 
         if (!$idCurso) {
             echo "<script>alert('⚠️ ID de curso no proporcionado'); window.history.back();</script>";
             return;
         }
 
+        $usuarioId = $_SESSION["usuario"]["id"];
+        if (!$this->modeloInstancia->existeInscripcion($usuarioId, $idCurso)) {
+            header("Location: /curso?id=" . urlencode($idCurso));
+            exit;
+        }
+
         $evaluacion = $this->modeloInstancia->obtenerEvaluacionConPreguntasPorCurso($idCurso);
-        
+
 
         if (!$evaluacion || empty($evaluacion['preguntas'])) {
             echo "<script>alert('⚠️ No se encontró una evaluación para este curso'); window.history.back();</script>";
@@ -180,6 +181,12 @@ class ControladorEvaluacion extends Controlador
             return;
         }
 
+        $usuarioId = $_SESSION["usuario"]["id"];
+        if (!$this->modeloInstancia->existeInscripcion($usuarioId, $idCurso)) {
+            header("Location: /curso?id=" . urlencode($idCurso));
+            exit;
+        }
+
         $evaluacion = $this->modeloInstancia->obtenerEvaluacionConPreguntasPorCurso($idCurso);
         
         if (!$evaluacion || empty($evaluacion['preguntas'])) {
@@ -191,16 +198,43 @@ class ControladorEvaluacion extends Controlador
         $totalPreguntas = count($evaluacion['preguntas']);
 
         foreach ($evaluacion['preguntas'] as $index => $pregunta) {
-            if (
-                isset($respuestas[$index]) &&
-                isset($pregunta['respuesta_correcta']) &&
-                $respuestas[$index] === $pregunta['respuesta_correcta']
-            ) {
-                $correctas++;
+            $userAnswer = $respuestas[$index] ?? null;
+            if ($userAnswer === null) {
+                continue;
+            }
+
+            if ($pregunta['tipo'] === 'multiple-choice') {
+                if (isset($pregunta['respuesta_correcta']) && $userAnswer === $pregunta['respuesta_correcta']) {
+                    $correctas++;
+                }
+            } elseif ($pregunta['tipo'] === 'completar') {
+                $palabraCorrecta = trim($pregunta['palabra_correcta'] ?? '');
+                if (strcasecmp(trim($userAnswer), $palabraCorrecta) === 0) {
+                    $correctas++;
+                }
+            } elseif ($pregunta['tipo'] === 'ordenar') {
+                $esCorrecto = true;
+                foreach ($pregunta['opciones'] as $opcion) {
+                    $opcionId = $opcion['id'];
+                    $userPos = isset($userAnswer[$opcionId]) ? (int) $userAnswer[$opcionId] : null;
+                    $correctPos = isset($opcion['posicion_correcta']) ? (int) $opcion['posicion_correcta'] : null;
+                    if ($userPos !== $correctPos) {
+                        $esCorrecto = false;
+                        break;
+                    }
+                }
+                if ($esCorrecto) {
+                    $correctas++;
+                }
             }
         }
 
         $puntuacion = round(($correctas / $totalPreguntas) * 10);
+
+        // Si aprobó (puntuación > 6), guardar en inscripciones
+        if ($puntuacion > 6) {
+            $this->modeloInstancia->guardarAprobacion($usuarioId, $idCurso, (int)$puntuacion);
+        }
 
         $_SESSION['resultado_evaluacion'] = [
             'curso_id' => $idCurso,
@@ -223,4 +257,139 @@ class ControladorEvaluacion extends Controlador
         require $this->viewsDir . 'resultados.view.php';
     }
 
+    public function descargarCertificado()
+    {
+        $this->validarSesion();
+
+        global $request;
+        $idCurso = $request->get('curso');
+        if (!$idCurso) {
+            echo "<script>alert('⚠️ Curso no especificado'); window.history.back();</script>";
+            return;
+        }
+
+        $usuarioId = $_SESSION['usuario']['id'];
+        $nombreUsuario = $_SESSION['usuario']['nombre'];
+
+        $inscripcion = $this->modeloInstancia->obtenerInscripcionAprobada($usuarioId, $idCurso);
+
+        if (!$inscripcion) {
+            echo "<script>alert('⚠️ No se encontró un certificado aprobado para este curso.'); window.history.back();</script>";
+            return;
+        }
+
+        $certificado = [
+            'nombre_estudiante' => $nombreUsuario,
+            'curso_titulo' => $inscripcion['curso_titulo'],
+            'nota' => $inscripcion['nota'],
+            'fecha_aprobado' => date('d/m/Y', strtotime($inscripcion['fecha_aprobado'])),
+            'curso_id' => $idCurso
+        ];
+
+        $titulo = "PAD - Certificado";
+        require $this->viewsDir . 'certificado.view.php';
+    }
+
+    public function editarEvaluacion()
+    {
+        $this->validarSesion();
+        if (!$this->validarAdmin()) {
+            header('HTTP/1.1 403 Forbidden');
+            echo "Acceso denegado.";
+            return;
+        }
+
+        global $request;
+        $idCurso = $request->get('curso');
+        if (!$idCurso) {
+            echo "<script>alert('⚠️ ID del curso no especificado'); window.history.back();</script>";
+            return;
+        }
+
+        $evaluacion = $this->modeloInstancia->obtenerEvaluacionConPreguntasPorCurso($idCurso);
+        if (!$evaluacion) {
+            echo "<script>alert('⚠️ No se encontró una evaluación para este curso para editar.'); window.history.back();</script>";
+            return;
+        }
+
+        $titulo = "PAD - Editar Evaluación";
+        require $this->viewsDir . 'editar-evaluacion.view.php';
+    }
+
+    public function procesarEditarEvaluacion()
+    {
+        $this->validarSesion();
+        if (!$this->validarAdmin()) {
+            header('HTTP/1.1 403 Forbidden');
+            echo "Acceso denegado.";
+            return;
+        }
+
+        global $request;
+
+        $idEvaluacion = $request->get('id_evaluacion');
+        $idCurso = $request->get('id_curso');
+        $tituloEvaluacion = $request->get("titulo");
+        $preguntas = $request->get("preguntas");
+
+        if (!$idEvaluacion || !$idCurso) {
+            echo "<script>alert('⚠️ Datos incompletos'); window.history.back();</script>";
+            return;
+        }
+
+        if (empty($preguntas)) {
+            echo "<script>alert('⚠️ No se puede guardar una evaluación sin preguntas.'); window.history.back();</script>";
+            return;
+        }
+
+        // 1. Actualizar título de la evaluación
+        $this->modeloInstancia->actualizarEvaluacion($idEvaluacion, ['titulo' => $tituloEvaluacion]);
+
+        // 2. Eliminar preguntas anteriores (las opciones se borran en cascada en la DB)
+        $this->modeloInstancia->eliminarPreguntasDeEvaluacion($idEvaluacion);
+
+        // 3. Insertar las nuevas preguntas y opciones
+        foreach ($preguntas as $pregunta) {
+            $datosPregunta = [
+                'id_evaluacion' => $idEvaluacion,
+                'tipo' => $pregunta['tipo'],
+                'enunciado' => $pregunta['enunciado'],
+                'palabra_correcta' => ($pregunta['tipo'] === 'completar') ? ($pregunta['opciones'][0]['respuesta_correcta'] ?? null) : null
+            ];
+
+            if ($pregunta['tipo'] === 'completar') {
+                $datosPregunta['enunciado'] = $pregunta['opciones'][0]['enunciado'] ?? '';
+            }
+
+            $preguntaId = $this->modeloInstancia->crearPregunta($datosPregunta);
+
+            if ($pregunta['tipo'] === 'multiple-choice') {
+                $correctaIndex = isset($pregunta['correcta']) ? (int) $pregunta['correcta'] : 0;
+                foreach ($pregunta['opciones'] as $oIdx => $opcion) {
+                    $datosOpcion = [
+                        'id_pregunta' => $preguntaId,
+                        'texto' => $opcion['texto'],
+                        'es_correcta' => ($oIdx === $correctaIndex) ? 1 : 0,
+                    ];
+                    $this->modeloInstancia->crearOpcion($datosOpcion);
+                }
+            } elseif ($pregunta['tipo'] === 'ordenar') {
+                foreach ($pregunta['opciones'] as $opcion) {
+                    $datosOpcion = [
+                        'id_pregunta' => $preguntaId,
+                        'texto' => $opcion['texto'],
+                        'es_correcta' => 0,
+                        'posicion_correcta' => $opcion['posicion']
+                    ];
+                    $this->modeloInstancia->crearOpcion($datosOpcion);
+                }
+            }
+        }
+
+        echo "<script>
+        alert('✅ Evaluación editada y guardada exitosamente');
+        window.location.href = '/curso?id={$idCurso}';
+        </script>";
+        exit;
+    }
 }

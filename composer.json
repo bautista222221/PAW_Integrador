@@ -29,5 +29,8 @@
     "psr-4": {
         "PAW\\src\\": "src/"
     }
-}
+},
+    "require-dev": {
+        "robmorgan/phinx": "^0.16.12"
+    }
 }

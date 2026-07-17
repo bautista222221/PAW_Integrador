@@ -133,8 +133,26 @@ class QueryBuilder
         return $stmt->execute();
     }
 
-    public function delete(){
-    
+    public function delete(string $tabla, array $condiciones = []): bool
+    {
+        $whereCond = [];
+        $binds = [];
+
+        foreach ($condiciones as $campo => $valor) {
+            $whereCond[] = "$campo = :$campo";
+            $binds[":$campo"] = $valor;
+        }
+
+        $where = count($whereCond) > 0 ? implode(" AND ", $whereCond) : "1 = 1";
+        $query = "DELETE FROM {$tabla} WHERE {$where}";
+        $stmt = $this->pdo->prepare($query);
+
+        foreach ($binds as $clave => $valor) {
+            $tipo = is_int($valor) ? PDO::PARAM_INT : PDO::PARAM_STR;
+            $stmt->bindValue($clave, $valor, $tipo);
+        }
+
+        return $stmt->execute();
     }
     public function count(string $tabla, array $parametros = []): int
     {

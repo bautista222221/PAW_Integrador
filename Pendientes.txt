@@ -1,4 +1,0 @@
-Tareas pendientes:
-1- Terminar CSS:
-	- agregar-evaluacion.view.php
-2- Podriamos agregar más recursos a la unidad.

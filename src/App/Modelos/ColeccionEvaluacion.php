@@ -72,8 +72,13 @@ class ColeccionEvaluacion extends Modelo
             return null;
         }
 
-        // Buscar evaluación directamente por el id_curso recibido
-        $evaluaciones = $this->queryBuilder->select('evaluaciones', ['id_curso' => $idCurso]);
+        // Buscar evaluación directamente por el curso_id recibido
+        $evaluaciones = $this->queryBuilder->select('evaluaciones', ['curso_id' => $idCurso]);
+        if (!empty($evaluaciones)) {
+            usort($evaluaciones, function($a, $b) {
+                return $b['id'] <=> $a['id'];
+            });
+        }
         $evaluacion = $evaluaciones[0] ?? null;
 
         if (!$evaluacion) {
@@ -99,5 +104,58 @@ class ColeccionEvaluacion extends Modelo
         return $evaluacion;
     }
 
+    public function existeInscripcion($usuarioId, $cursoId): bool
+    {
+        $resultados = $this->queryBuilder->select('inscripciones', [
+            'usuario_id' => $usuarioId,
+            'curso_id' => $cursoId
+        ]);
 
+        return !empty($resultados);
+    }
+
+    public function actualizarEvaluacion(int $idEvaluacion, array $datos): bool
+    {
+        return $this->queryBuilder->update('evaluaciones', $datos, ['id' => $idEvaluacion]);
+    }
+
+    public function eliminarPreguntasDeEvaluacion(int $idEvaluacion): bool
+    {
+        return $this->queryBuilder->delete('preguntas', ['id_evaluacion' => $idEvaluacion]);
+    }
+
+    public function guardarAprobacion(int $usuarioId, int $cursoId, int $nota): bool
+    {
+        return $this->queryBuilder->update('inscripciones', [
+            'nota' => $nota,
+            'aprobado' => true,
+            'fecha_aprobado' => date('Y-m-d H:i:s')
+        ], [
+            'usuario_id' => $usuarioId,
+            'curso_id' => $cursoId
+        ]);
+    }
+
+    public function obtenerCursosAprobados(int $usuarioId): array
+    {
+        $sql = "SELECT i.*, c.titulo as curso_titulo
+                FROM inscripciones i
+                JOIN cursos c ON i.curso_id = c.id
+                WHERE i.usuario_id = :usuario_id AND i.aprobado = true
+                ORDER BY i.fecha_aprobado DESC";
+        return $this->queryBuilder->selectRaw($sql, ['usuario_id' => $usuarioId]);
+    }
+
+    public function obtenerInscripcionAprobada(int $usuarioId, int $cursoId): ?array
+    {
+        $sql = "SELECT i.*, c.titulo as curso_titulo
+                FROM inscripciones i
+                JOIN cursos c ON i.curso_id = c.id
+                WHERE i.usuario_id = :usuario_id AND i.curso_id = :curso_id AND i.aprobado = true";
+        $resultados = $this->queryBuilder->selectRaw($sql, [
+            'usuario_id' => $usuarioId,
+            'curso_id' => $cursoId
+        ]);
+        return !empty($resultados) ? $resultados[0] : null;
+    }
 }

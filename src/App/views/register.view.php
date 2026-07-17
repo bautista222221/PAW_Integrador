@@ -5,16 +5,27 @@
         <section class="container">
             <form class="form-box" action="/register" method="post">
                 <h1 class="subtitulo">Registrarse</h1>
+
+                <?php if (isset($_SESSION['error'])): ?>
+                    <div class="alert alert-danger">
+                        <i class="fa-solid fa-triangle-exclamation"></i> <?= htmlspecialchars($_SESSION['error']); unset($_SESSION['error']); ?>
+                    </div>
+                <?php endif; ?>
+                <?php if (isset($_SESSION['success'])): ?>
+                    <div class="alert alert-success">
+                        <i class="fa-solid fa-circle-check"></i> <?= htmlspecialchars($_SESSION['success']); unset($_SESSION['success']); ?>
+                    </div>
+                <?php endif; ?>
+
                 <fieldset class="input-box">
                     <label for="inputNombre">Nombre Completo</label>
-                    <input id="inputNombre" type="nombre" name="inputNombre" placeholder="Nombre" required>
+                    <input id="inputNombre" type="text" name="inputNombre" placeholder="Nombre" required>
                     <i class="fa-solid fa-user"></i>
-                    </input>
                 </fieldset>
                 <fieldset class="input-box">
                     <label for="inputEmail">Dirección de correo electrónico</label>
                     <input id="inputEmail" type="email" name="inputEmail" placeholder="Email" required>
-                    <i class="fa-solid fa-user"></i> </input>
+                    <i class="fa-solid fa-envelope"></i>
                 </fieldset>
                 <fieldset class="input-box">
                     <label for="inputPassword">Contraseña</label>

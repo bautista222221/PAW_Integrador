@@ -11,7 +11,7 @@ class Evaluacion extends Modelo
 
     public $campos = [
         "id" => null,
-        "id_curso" => null,
+        "curso_id" => null,
         "titulo" => null,
     ];
 
@@ -30,12 +30,12 @@ class Evaluacion extends Modelo
         $this->campos['id'] = intval($id);
     }
 
-    public function setId_curso($id_curso)
+    public function setCurso_id($curso_id)
     {
-        if (!is_numeric($id_curso) || intval($id_curso) <= 0) {
-            throw new InvalidValueFormatException("El id_curso debe ser un número entero positivo.");
+        if (!is_numeric($curso_id) || intval($curso_id) <= 0) {
+            throw new InvalidValueFormatException("El curso_id debe ser un número entero positivo.");
         }
-        $this->campos['id_curso'] = intval($id_curso);
+        $this->campos['curso_id'] = intval($curso_id);
     }
 
     public function setTitulo(string $titulo)
@@ -69,7 +69,7 @@ class Evaluacion extends Modelo
     public function guardar()
     {
         // Validación
-        foreach (['id_curso', 'titulo'] as $campo) {
+        foreach (['curso_id', 'titulo'] as $campo) {
             if (empty($this->campos[$campo])) {
                 throw new \Exception("El campo '$campo' no puede estar vacío.");
             }

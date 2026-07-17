@@ -26,7 +26,16 @@ class ColeccionUsuarios extends Modelo
         $usuario->setQueryBuilder($this->queryBuilder);
         $usuario->set($resultado[0]);
 
+        // Intentar autenticar con hash seguro
+        if (password_verify($password, $usuario->campos['password'])) {
+            return $usuario;
+        }
+
+        // Fallback y migración automática para contraseñas antiguas en texto plano
         if ($password === $usuario->campos['password']) {
+            $nuevoHash = password_hash($password, PASSWORD_DEFAULT);
+            $this->actualizar($usuario->campos['id'], ['password' => $nuevoHash]);
+            $usuario->campos['password'] = $nuevoHash;
             return $usuario;
         }
 

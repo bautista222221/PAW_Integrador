@@ -8,7 +8,8 @@ class Request{
     }
 
     public function method(){
-        return $_SERVER['REQUEST_METHOD'];
+        $method = $_SERVER['REQUEST_METHOD'];
+        return ($method === 'HEAD') ? 'GET' : $method;
     }
 
     public function route(){

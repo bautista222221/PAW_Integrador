@@ -17,21 +17,21 @@
                 <section class="tarjeta">
                     <h4>Título</h4>
                     <p>Nivel: Básico</p>
-                    <button>Resolver desafío</button>
+                    <button>Resolver ejercicio</button>
                 </section>
 
                 <!-- Tarjeta de ejercicio 2 -->
                 <section class="tarjeta">
                     <h4>Título</h4>
                     <p>Nivel: Intermedio</p>
-                    <button>Resolver desafío</button>
+                    <button>Resolver ejercicio</button>
                 </section>
 
                 <!-- Tarjeta de ejercicio 3 -->
                 <section class="tarjeta">
                     <h4>Título</h4>
                     <p>Nivel: Avanzado</p>
-                    <button>Resolver desafío</button>
+                    <button>Resolver ejercicio</button>
                 </section>
 
             </section>

@@ -10,7 +10,6 @@
         <?php endif; ?>
 
         <p><strong>Recurso:</strong></p>
-        <p><strong>Recurso:</strong></p>
         <?= $contenido ?>
         <a href="/curso?id=<?= urlencode($cursoId) ?>">← Volver al curso</a>
     </main>

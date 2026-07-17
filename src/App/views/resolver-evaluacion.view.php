@@ -19,7 +19,7 @@
                         foreach ($preg['opciones'] as $opIndex => $opcion): ?>
                             <label>
                                 <input type="radio" name="respuestas[<?= $index ?>]"
-                                    value="<?= htmlspecialchars($opcion['texto']) ?>" required>
+                                    value="<?= htmlspecialchars($opcion['id']) ?>" required>
                                 <?= htmlspecialchars($opcion['texto']) ?>
                             </label><br>
                         <?php endforeach; ?>
@@ -27,10 +27,10 @@
                     <?php elseif ($preg['tipo'] === 'completar'): ?>
                         <p>
                             <?php
-                            // El enunciado de tipo completar está directamente en $preg['enunciado'], con ___ como espacio para completar
+                            // El enunciado de tipo completar está directamente en $preg['enunciado'], con _ como espacio para completar
                             $oracion = htmlspecialchars($preg['enunciado']);
-                            $input = '<input type="text" name="respuestas[' . $index . ']" placeholder="Tu respuesta" required>';
-                            echo str_replace('___', $input, $oracion);
+                            $input = '<input type="text" name="respuestas[' . $index . ']" placeholder="Tu respuesta" class="form-control d-inline-block" style="display:inline-block; width:auto; max-width:200px; margin:0 0.5rem;" required>';
+                            echo preg_replace('/_+/', $input, $oracion);
                             ?>
                         </p>
 

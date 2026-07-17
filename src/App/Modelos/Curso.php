@@ -51,10 +51,11 @@ class Curso extends Modelo
         $this->campos['descripcion'] = $descripcion;
     }
 
-    public function setRecomendaciones(string $recomendaciones)
+    public function setRecomendaciones(?string $recomendaciones)
     {
         if (empty($recomendaciones)) {
-            throw new InvalidValueFormatException("Las recomendaciones no pueden estar vacías.");
+            $this->campos['recomendaciones'] = [];
+            return;
         }
 
         // Intentamos decodificar el string JSON a array asociativo

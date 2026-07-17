@@ -24,10 +24,25 @@ class ControladorUsuarios extends Controlador
 
     public function userProfile()
     {
+        if (!isset($_SESSION['usuario'])) {
+            echo "<script>alert('⚠️ Debes iniciar sesión para acceder a tu perfil'); window.location.href = '/login';</script>";
+            return;
+        }
         $usuario = $_SESSION['usuario'];
         $fecha = date("d/m/Y", strtotime($usuario["fecha_creacion"]));
         $titulo = 'PAD - Mi cuenta';
         $htmlClass = "mi-cuenta-pages";
+
+        // Cargar certificados aprobados
+        $sql = "SELECT i.nota, i.fecha_aprobado, c.titulo as curso_titulo, c.id as curso_id
+                FROM inscripciones i
+                JOIN cursos c ON i.curso_id = c.id
+                WHERE i.usuario_id = :usuario_id AND i.aprobado = true
+                ORDER BY i.fecha_aprobado DESC";
+        global $connection;
+        $qb = new \PAW\src\Core\Database\QueryBuilder($connection);
+        $certificados = $qb->selectRaw($sql, ['usuario_id' => $usuario['id']]);
+
         require $this->viewsDir . 'user-profile.view.php';
     }
 
@@ -50,29 +65,30 @@ class ControladorUsuarios extends Controlador
 
         // Validación mínima de formato
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            echo "<script>alert('⚠️ Email no valido'); window.history.back();</script>";
+            $_SESSION['error'] = '⚠️ El correo electrónico ingresado no es válido.';
+            header("Location: /login");
             return;
         }
         if (empty($password)) {
-            echo "<script>alert('⚠️ La contraseña no puede estar vacia'); window.history.back();</script>";
+            $_SESSION['error'] = '⚠️ La contraseña no puede estar vacía.';
+            header("Location: /login");
             return;
         }
         if (strlen($password) < 8) {
-            echo "<script>alert('⚠️ La contraseña debe tener al menos 8 caracteres'); window.history.back();</script>";
+            $_SESSION['error'] = '⚠️ La contraseña debe tener al menos 8 caracteres.';
+            header("Location: /login");
             return;
         }
 
         $usuario = $this->modeloInstancia->autenticar($email, $password);
         if (empty($usuario)) {
-            echo "<script>alert('⚠️ Email o contraseña incorrectos'); window.history.back();</script>";
+            $_SESSION['error'] = '⚠️ Correo electrónico o contraseña incorrectos.';
+            header("Location: /login");
             return;
         }
         $_SESSION['usuario'] = $usuario->campos;
-        // Éxito: redirigir a página principal u otra
-        echo "<script>
-            alert('✅ Sesion iniciada exitosamente');
-            window.location.href = '/';
-        </script>";
+        $_SESSION['success'] = '✅ ¡Sesión iniciada exitosamente!';
+        header("Location: /");
         exit();
     }
 
@@ -92,7 +108,8 @@ class ControladorUsuarios extends Controlador
             empty($request->get('inputPassword')) ||
             empty($request->get('inputConfirmarPassword'))
         ) {
-            echo "<script>alert('⚠️ Todos los campos obligatorios deben completarse'); window.history.back();</script>";
+            $_SESSION['error'] = '⚠️ Todos los campos obligatorios deben completarse.';
+            header("Location: /register");
             return;
         }
         // Recoger los datos del formulario
@@ -103,44 +120,54 @@ class ControladorUsuarios extends Controlador
         $datos = [
             'nombre' => $nombre,
             'correo' => $email,
-            'password' => $password,
+            'password' => password_hash($password, PASSWORD_DEFAULT),
         ];
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            echo "<script>alert('⚠️ Email no valido'); window.history.back();</script>";
+            $_SESSION['error'] = '⚠️ El correo electrónico ingresado no es válido.';
+            header("Location: /register");
             return;
         }
 
         if (!preg_match("/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/", $nombre)) {
-            echo "<script>alert('⚠️ Nombre no valido'); window.history.back();</script>";
+            $_SESSION['error'] = '⚠️ El nombre ingresado no es válido.';
+            header("Location: /register");
             return;
         }
 
         if (strlen($password) < 8) {
-            echo "<script>alert('⚠️ La contraseña debe tener al menos 8 caracteres'); window.history.back();</script>";
+            $_SESSION['error'] = '⚠️ La contraseña debe tener al menos 8 caracteres.';
+            header("Location: /register");
             return;
         }
 
         if ($password !== $confirmarPassword) {
-            echo "<script>alert('⚠️ Las contraseña no coinciden'); window.history.back();</script>";
+            $_SESSION['error'] = '⚠️ Las contraseñas no coinciden.';
+            header("Location: /register");
             return;
         }
 
         if ($this->modeloInstancia->existeEmail($email)) {
-            echo "<script>alert('⚠️ El Email ya esta registrado'); window.history.back();</script>";
+            $_SESSION['error'] = '⚠️ El correo electrónico ya está registrado.';
+            header("Location: /register");
             return;
         }
 
         // Crear un nuevo usuario
         if (!$this->modeloInstancia->crear($datos)) {
-            echo "<script>alert('⚠️ Error al crear el usuario'); window.history.back();</script>";
+            $_SESSION['error'] = '⚠️ Ocurrió un error al registrar el usuario.';
+            header("Location: /register");
             return;
         }
-        // Éxito: redirigir a página principal u otra
-        echo "<script>
-            alert('✅ Registro exitoso');
-            window.location.href = '/user-profile';
-        </script>";
+        // Auto-login del usuario recién registrado
+        $usuarioCreado = $this->modeloInstancia->queryBuilder->select('usuarios', ['correo' => $email]);
+        if (!empty($usuarioCreado)) {
+            $_SESSION['usuario'] = $usuarioCreado[0];
+        }
+        
+        $_SESSION['success'] = '✅ ¡Registro exitoso!';
+        header("Location: /user-profile");
+        exit();
     }
 
     public function editarUsuario()

@@ -13,14 +13,21 @@ class ControladorCursos extends Controlador
         $titulo = "PAD - Cursos";
         $cursos = $this->modeloInstancia->getAll();
         $permiso = $this->validarAdmin();
+
+        $cursosActivos = [];
+        if (isset($_SESSION['usuario'])) {
+            $usuarioId = $_SESSION['usuario']['id'];
+            $cursosActivos = $this->modeloInstancia->getCursosActivosUsuario($usuarioId);
+        }
+
         require $this->viewsDir . 'cursos.view.php';
     }
 
     public function validarSesion()
     {
         if (!isset($_SESSION['usuario'])) {
-            echo "<script>alert('⚠️ Debes iniciar sesion para ver un curso'); window.location.href = '/login'</script>";
-            return;
+            header("Location: /login");
+            exit;
         }
     }
 
@@ -41,22 +48,42 @@ class ControladorCursos extends Controlador
         $this->validarSesion();
         global $request;
         $cursoId = $request->get('id');
-        $curso = $this->modeloInstancia->get($cursoId);
-        $temas = $this->modeloInstancia->getTemasCurso($cursoId);
-        $modulos = $this->modeloInstancia->getModulosCurso($cursoId);
         $usuarioId = $_SESSION["usuario"]["id"];
+        
+        // Cargar todo en la menor cantidad de queries posible (4 en vez de 7+)
+        $data = $this->modeloInstancia->getCursoCompleto((int)$cursoId, (int)$usuarioId);
+        
+        $cursoData = $data['curso'];
+        if (!$cursoData) {
+            header("Location: /cursos");
+            exit;
+        }
+        
+        // Construir objeto Curso a partir de los datos ya cargados
+        $curso = new \PAW\src\App\Modelos\Curso();
+        $curso->setQueryBuilder($this->modeloInstancia->queryBuilder);
+        $curso->set($cursoData);
+        
+        $temas = $data['temas'];
+        $modulos = $data['modulos'];
         $recomendaciones = $curso->campos['recomendaciones'] ?? [];
-
+        $inscripto = (bool)$cursoData['inscripto'];
+        $tieneEvaluacion = (bool)$cursoData['tiene_evaluacion'];
+        $comentarios = $data['comentarios'];
+        $permiso = $this->validarAdmin();
+        
+        // Crear progresos solo para módulos que no los tienen (progreso_id = null)
         foreach ($modulos as &$modulo) {
-            $existe = $this->modeloInstancia->existeProgreso($usuarioId, $cursoId, $modulo['id']);
-            if (!$existe) {
+            if (empty($modulo['progreso_id'])) {
                 $this->modeloInstancia->crearProgreso($usuarioId, $cursoId, $modulo['id']);
                 $modulo["completado"] = false;
             } else {
-                $modulo["completado"] = $this->modeloInstancia->estaCompletado($usuarioId, $cursoId, $modulo["id"]);
+                $modulo["completado"] = (bool) $modulo["completado"];
             }
         }
         unset($modulo);
+        
+        $evaluacionData = $tieneEvaluacion ? [true] : [];
         $titulo = htmlspecialchars($curso->campos['titulo'] ?? 'Curso no encontrado');
         require $this->viewsDir . 'curso.view.php';
     }
@@ -69,6 +96,14 @@ class ControladorCursos extends Controlador
         $modulo = $this->modeloInstancia->getModulo($moduloId);
         $cursoId = $modulo["curso_id"];
         $usuarioId = $_SESSION["usuario"]["id"];
+
+        // Validar inscripción del usuario en este curso
+        $inscripto = $this->modeloInstancia->existeInscripcion($usuarioId, $cursoId);
+        if (!$inscripto) {
+            header("Location: /curso?id=" . urlencode($cursoId));
+            exit;
+        }
+
         $contenido = $this->embedRecurso($modulo["tipo"], $modulo["url"]);
         $this->modeloInstancia->marcarCompletado($moduloId, $cursoId, $usuarioId);
         require $this->viewsDir . 'ver-unidad.view.php';
@@ -76,13 +111,19 @@ class ControladorCursos extends Controlador
 
     public function agregarCurso()
     {
-        $this->validarAdmin();
+        if (!$this->validarAdmin()) {
+            header("Location: /login");
+            exit;
+        }
         $titulo = "PAD - Agregar Curso";
         require $this->viewsDir . 'agregar-curso.view.php';
     }
     public function procesarAgregarCurso()
     {
-        $this->validarAdmin();
+        if (!$this->validarAdmin()) {
+            header("Location: /login");
+            exit;
+        }
         global $request;
         $tituloCurso = $request->get("titulo");
         $descripcionCurso = $request->get("descripcion");
@@ -186,6 +227,162 @@ class ControladorCursos extends Controlador
         </script>";
     }
 
+    public function editarCurso()
+    {
+        if (!$this->validarAdmin()) {
+            header("Location: /login");
+            exit;
+        }
+
+        global $request;
+        $idCurso = $request->get('id');
+        if (!$idCurso) {
+            echo "<script>alert('⚠️ ID del curso no especificado'); window.history.back();</script>";
+            return;
+        }
+
+        $curso = $this->modeloInstancia->get($idCurso);
+        if (!$curso) {
+            echo "<script>alert('⚠️ Curso no encontrado'); window.history.back();</script>";
+            return;
+        }
+
+        $temas = $this->modeloInstancia->getTemasCurso($idCurso);
+        $modulos = $this->modeloInstancia->getModulosCurso($idCurso);
+
+        $titulo = "PAD - Editar Curso";
+        require $this->viewsDir . 'editar-curso.view.php';
+    }
+
+    public function procesarEditarCurso()
+    {
+        if (!$this->validarAdmin()) {
+            header("Location: /login");
+            exit;
+        }
+
+        global $request;
+        $idCurso = $request->get('id_curso');
+        if (!$idCurso) {
+            echo "<script>alert('⚠️ ID del curso no especificado'); window.history.back();</script>";
+            return;
+        }
+
+        $curso = $this->modeloInstancia->get($idCurso);
+        if (!$curso) {
+            echo "<script>alert('⚠️ Curso no encontrado'); window.history.back();</script>";
+            return;
+        }
+
+        $tituloCurso = $request->get("titulo");
+        $descripcionCurso = $request->get("descripcion");
+        $recomendaciones = $request->get("recomendaciones_json") ?? null;
+        $nivel = $request->get("nivel");
+        $duracion = (int) $request->get("duracion");
+
+        // Imagen del curso (preservar anterior si no se sube una nueva)
+        $rutaImagenCurso = $curso->campos['imagen'];
+        $carpetaImagenes = __DIR__ . '/../../../public/uploads/';
+
+        if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === 0) {
+            $nombreImagen = basename($_FILES['imagen']['name']);
+            $destinoImagen = $carpetaImagenes . $nombreImagen;
+            if (move_uploaded_file($_FILES['imagen']['tmp_name'], $destinoImagen)) {
+                $rutaImagenCurso = '/uploads/' . $nombreImagen;
+            }
+        }
+
+        $datosCurso = [
+            'titulo' => $tituloCurso,
+            'descripcion' => $descripcionCurso,
+            'recomendaciones' => $recomendaciones,
+            'nivel' => $nivel,
+            'duracion' => $duracion,
+            'imagen' => $rutaImagenCurso
+        ];
+
+        $this->modeloInstancia->actualizarCurso($idCurso, $datosCurso);
+
+        // 1. Re-guardar Temario (borrar antiguos e insertar nuevos)
+        $this->modeloInstancia->eliminarTemasCurso($idCurso);
+        $temas = $request->get("temario") ?? [];
+        foreach ($temas as $orden => $temaTitulo) {
+            $temaDatos = [
+                'curso_id' => $idCurso,
+                'titulo' => $temaTitulo,
+            ];
+            $this->modeloInstancia->guardarTema($temaDatos);
+        }
+
+        // 2. Guardar/Actualizar Módulos
+        $modulosForm = $request->get("modulos") ?? [];
+        $archivosModulo = $_FILES['modulos'] ?? [];
+
+        // Obtener los IDs de los módulos que se mantendrán para eliminar el resto
+        $idsPreservados = [];
+        foreach ($modulosForm as $mod) {
+            if (!empty($mod['id'])) {
+                $idsPreservados[] = (int)$mod['id'];
+            }
+        }
+
+        // Eliminar módulos removidos en la vista (y su progreso)
+        $this->modeloInstancia->eliminarModulosCursoExcepto($idCurso, $idsPreservados);
+
+        $i = 0;
+        foreach ($modulosForm as $indice => $modulo) {
+            $contenidoUrl = null;
+
+            // Link al contenido
+            if (!empty($modulo['link'])) {
+                $contenidoUrl = $modulo['link'];
+            }
+            // Archivo subido
+            elseif (
+                !empty($archivosModulo['name'][$indice]['archivo']) &&
+                $archivosModulo['error'][$indice]['archivo'] === 0
+            ) {
+                $nombreArchivo = basename($archivosModulo['name'][$indice]['archivo']);
+                $tmpArchivo = $archivosModulo['tmp_name'][$indice]['archivo'];
+                $rutaDestino = $carpetaImagenes . $nombreArchivo;
+
+                if (move_uploaded_file($tmpArchivo, $rutaDestino)) {
+                    $contenidoUrl = '/uploads/' . $nombreArchivo;
+                }
+            }
+
+            // Si no se especificó un nuevo archivo/link, usar la url existente
+            if (is_null($contenidoUrl)) {
+                $contenidoUrl = $modulo['url_existente'] ?? "";
+            }
+
+            $datosModulo = [
+                "curso_id" => $idCurso,
+                "titulo" => $modulo["titulo"],
+                "descripcion" => $modulo["descripcion"],
+                "tipo" => $this->detectarTipoRecurso($contenidoUrl),
+                "url" => $contenidoUrl,
+                "orden" => $i + 1
+            ];
+
+            if (!empty($modulo['id'])) {
+                // Actualizar módulo existente
+                $this->modeloInstancia->actualizarModulo((int)$modulo['id'], $datosModulo);
+            } else {
+                // Crear nuevo módulo
+                $this->modeloInstancia->guardarModulos($datosModulo);
+            }
+
+            $i++;
+        }
+
+        echo "<script>
+            alert('✅ Curso editado exitosamente');
+            window.location.href = '/curso?id={$idCurso}';
+        </script>";
+        exit;
+    }
+
     public function modeloIA()
     {
         header("Content-Type: application/json");
@@ -201,107 +398,26 @@ class ControladorCursos extends Controlador
             return;
         }
 
-        global $config;
+        global $config, $log;
 
-        $prompt = "Actuá como un asistente pedagógico especializado en diseño de cursos.
-
-        Tu tarea es analizar la siguiente información sobre un curso y sugerir contenidos complementarios que puedan enriquecerlo. Las recomendaciones deben ser recursos concretos como libros, artículos, videos, podcasts, sitios web, etc.
-
-        Cada recomendación debe tener:
-        - un campo \"tipo\" (por ejemplo: \"libro\", \"video\", etc),
-        - un campo \"titulo\" (obligatorio),
-        - y un campo \"descripcion\" (opcional).
-
-        Es importante que el título esté claramente separado para facilitar el procesamiento posterior.
-
-        ⚠️ Respondé **únicamente con JSON válido**, sin ningún texto antes o después.
-
-        Formato exacto:
-        {
-            \"recomendaciones\": [
-                {
-                \"tipo\": \"libro\" | \"video\" | \"artículo\" | \"podcast\" | \"sitio web\",
-                \"titulo\": \"Título del recurso\",
-                \"descripcion\": \"(opcional) Breve descripción del recurso\"
-                },
-                ...
-            ]
+        // Instanciar el servicio desacoplado de IA
+        $iaService = new \PAW\src\Core\Services\IAService($config);
+        if (isset($log)) {
+            $iaService->setLogger($log);
         }
 
-        Datos del curso:
-        Título: \"$titulo\"
-        Descripción: \"$descripcion\"
-        Temario: " . implode(", ", $temario);
+        // Obtener recomendaciones
+        $resultado = $iaService->obtenerRecomendaciones($titulo, $descripcion, $temario);
 
-        $apiKey = $config->get('IA_KEY') ?? null;
-
-        $url = "https://openrouter.ai/api/v1/chat/completions";
-
-        $data = [
-            "model" => "meta-llama/llama-3-8b-instruct",
-            "messages" => [
-                [
-                    "role" => "system",
-                    "content" => "Sos un asistente que sugiere contenidos complementarios útiles para cursos educativos."
-                ],
-                [
-                    "role" => "user",
-                    "content" => $prompt
-                ]
-            ]
-        ];
-
-        $headers = [
-            "Authorization: Bearer $apiKey",
-            "Content-Type: application/json",
-            "HTTP-Referer: http://tusitio.com", // reemplazar con tu dominio real
-            "X-Title: RecomendacionesCurso"
-        ];
-
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        if ($httpCode !== 200 || !$response) {
-            echo json_encode(["error" => "Error al consultar IA (código $httpCode)"]);
-            return;
-        }
-
-        $json = json_decode($response, true);
-        $content = $json["choices"][0]["message"]["content"] ?? null;
-
-        if (!$content) {
-            echo json_encode(["error" => "Respuesta de IA no válida."]);
-            return;
-        }
-
-        // Intentar decodificar el JSON que devuelve el modelo
-        $parsed = json_decode($content, true);
-
-        file_put_contents("respuesta_ia.txt", $content);
-
-
-        if (!is_array($parsed) || !isset($parsed["recomendaciones"])) {
-            echo json_encode(["error" => "La IA no devolvió un JSON válido o no contiene recomendaciones."]);
-            return;
-        }
-
-        // Opcional: validamos que cada ítem tenga al menos tipo y titulo
-        $recomendaciones = array_filter($parsed["recomendaciones"], function($rec) {
+        $recomendaciones = array_filter($resultado["recomendaciones"] ?? [], function($rec) {
             return isset($rec["tipo"]) && isset($rec["titulo"]);
         });
 
-        echo json_encode(["recomendaciones" => array_values($recomendaciones)]);
+        echo json_encode([
+            "recomendaciones" => array_values($recomendaciones),
+            "fallback" => $resultado["fallback"] ?? false
+        ]);
     }
-
-
 
     public function detectarTipoRecurso(string $rutaOUrl): string
     {
@@ -376,5 +492,26 @@ class ControladorCursos extends Controlador
             default:
                 return "<p><a href=\"{$rutaOUrl}\" download>Descargar recurso</a></p>";
         }
+    }
+
+    public function agregarComentario()
+    {
+        $this->validarSesion();
+        global $request;
+        
+        $cursoId = $request->get("curso_id");
+        $contenido = trim($request->get("contenido"));
+        $usuarioId = $_SESSION["usuario"]["id"];
+        
+        if (!empty($contenido)) {
+            $datosComentario = [
+                "curso_id" => $cursoId,
+                "usuario_id" => $usuarioId,
+                "contenido" => $contenido
+            ];
+            $this->modeloInstancia->guardarComentario($datosComentario);
+        }
+        
+        header("Location: /curso?id=" . urlencode($cursoId));
     }
 }
