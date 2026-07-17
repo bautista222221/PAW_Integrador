@@ -204,7 +204,7 @@ class ControladorEvaluacion extends Controlador
             }
 
             if ($pregunta['tipo'] === 'multiple-choice') {
-                if (isset($pregunta['respuesta_correcta']) && $userAnswer === $pregunta['respuesta_correcta']) {
+                if (isset($pregunta['respuesta_correcta']) && (string)$userAnswer === (string)$pregunta['respuesta_correcta']) {
                     $correctas++;
                 }
             } elseif ($pregunta['tipo'] === 'completar') {

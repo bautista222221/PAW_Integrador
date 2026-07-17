@@ -16,7 +16,9 @@
 
                     <?php
                     if ($preg['tipo'] === 'multiple-choice'):
-                        foreach ($preg['opciones'] as $opIndex => $opcion): ?>
+                        $opciones = $preg['opciones'];
+                        shuffle($opciones);
+                        foreach ($opciones as $opcion): ?>
                             <label>
                                 <input type="radio" name="respuestas[<?= $index ?>]"
                                     value="<?= htmlspecialchars($opcion['id']) ?>" required>

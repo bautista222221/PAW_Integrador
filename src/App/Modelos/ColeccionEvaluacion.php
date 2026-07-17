@@ -92,7 +92,7 @@ class ColeccionEvaluacion extends Modelo
 
             foreach ($opciones as $opcion) {
                 if (!empty($opcion['es_correcta'])) {
-                    $pregunta['respuesta_correcta'] = $opcion['texto'];
+                    $pregunta['respuesta_correcta'] = $opcion['id'];
                     break;
                 }
             }
