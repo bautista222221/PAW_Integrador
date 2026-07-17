@@ -24,6 +24,13 @@
                                 <div class="curso-card-header">
                                     <span class="badge-curso"><i class="fa-solid fa-graduation-cap"></i> Curso</span>
                                 </div>
+                                <div class="curso-card-img-wrapper" style="width: 100%; height: 160px; overflow: hidden; border-radius: var(--radius-sm); margin-bottom: 1rem;">
+                                    <?php if (!empty($curso->campos['imagen'])): ?>
+                                        <img src="<?= htmlspecialchars($curso->campos['imagen']) ?>" alt="Imagen de <?= htmlspecialchars($curso->campos['titulo']) ?>" style="width: 100%; height: 100%; object-fit: cover;">
+                                    <?php else: ?>
+                                        <img src="/images/portadaCurso.jpg" alt="Imagen por defecto" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.8;">
+                                    <?php endif; ?>
+                                </div>
                                 <h4><?= htmlspecialchars($curso->campos['titulo']) ?></h4>
                                 <p><?= nl2br(htmlspecialchars($curso->campos['descripcion'])) ?></p>
                                 <span class="btn-ver-mas">Empezar a aprender <i class="fa-solid fa-arrow-right"></i></span>
@@ -58,6 +65,13 @@
                                 <a href="/curso?id=<?= urlencode($cursoActivo->campos['id']) ?>" class="curso-card active-course-card">
                                     <div class="curso-card-header">
                                         <span class="badge-curso active-badge"><i class="fa-solid fa-circle-play"></i> En curso</span>
+                                    </div>
+                                    <div class="curso-card-img-wrapper" style="width: 100%; height: 140px; overflow: hidden; border-radius: var(--radius-sm); margin-bottom: 1rem;">
+                                        <?php if (!empty($cursoActivo->campos['imagen'])): ?>
+                                            <img src="<?= htmlspecialchars($cursoActivo->campos['imagen']) ?>" alt="Imagen de <?= htmlspecialchars($cursoActivo->campos['titulo']) ?>" style="width: 100%; height: 100%; object-fit: cover;">
+                                        <?php else: ?>
+                                            <img src="/images/portadaCurso.jpg" alt="Imagen por defecto" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.8;">
+                                        <?php endif; ?>
                                     </div>
                                     <h4><?= htmlspecialchars($cursoActivo->campos['titulo']) ?></h4>
                                     <p><?= nl2br(htmlspecialchars($cursoActivo->campos['descripcion'])) ?></p>

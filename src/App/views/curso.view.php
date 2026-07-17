@@ -5,9 +5,13 @@
     <main class="curso-detalle">
         <?php if (isset($curso) && is_object($curso) && isset($curso->campos)): ?>
             <h2 class= "titulo-curso-principal"><?= htmlspecialchars($curso->campos['titulo']) ?></h2>
-            <?php if (!empty($curso->campos['imagen'])): ?>
-                <img src="<?= htmlspecialchars($curso->campos['imagen']) ?>" alt="Imagen del curso">
-            <?php endif; ?>
+            <div class="curso-detalle-img-wrapper" style="width: 100%; height: 320px; overflow: hidden; border-radius: var(--radius-md); box-shadow: var(--shadow-md); margin-bottom: 2rem;">
+                <?php if (!empty($curso->campos['imagen'])): ?>
+                    <img src="<?= htmlspecialchars($curso->campos['imagen']) ?>" alt="Imagen de <?= htmlspecialchars($curso->campos['titulo']) ?>" style="width: 100%; height: 100%; object-fit: cover;">
+                <?php else: ?>
+                    <img src="/images/portadaCurso.jpg" alt="Imagen de portada" style="width: 100%; height: 100%; object-fit: cover;">
+                <?php endif; ?>
+            </div>
             <section class="curso-box">
                 <p><strong>Descripción:</strong> <?= nl2br(htmlspecialchars($curso->campos['descripcion'])) ?></p>
                 <p><strong>Temario:</strong></p>

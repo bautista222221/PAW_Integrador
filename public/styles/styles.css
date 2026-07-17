@@ -1203,6 +1203,88 @@ header h1 {
     color: var(--color-accent-teal);
 }
 
+/* --- DOWNLOAD RESOURCE CARD --- */
+.descargar-recurso-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    gap: 1.5rem;
+    margin: 1rem 0;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.descargar-recurso-card:hover {
+    border-color: var(--color-accent-teal);
+    box-shadow: var(--shadow-sm);
+}
+
+.recurso-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.recurso-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    font-size: 1.5rem;
+}
+
+.recurso-icon-wrapper.file-type {
+    background-color: rgba(249, 115, 22, 0.1);
+    color: var(--color-accent-orange);
+}
+
+.recurso-icon-wrapper.url-type {
+    background-color: rgba(20, 184, 166, 0.1);
+    color: var(--color-accent-teal);
+}
+
+.recurso-filename {
+    display: block;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 1.05rem;
+    word-break: break-all;
+}
+
+.recurso-subtitle {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.btn-descargar-recurso {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.25rem;
+    background-color: var(--color-accent-teal) !important;
+    border: none !important;
+    color: #ffffff !important;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.btn-descargar-recurso:hover {
+    background-color: var(--color-accent-teal-hover) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(20, 184, 166, 0.25);
+    color: #ffffff !important;
+}
+
 /* --- EVALUATION / EXAM FORM --- */
 .form-evalucion {
     display: flex;
@@ -3300,6 +3382,25 @@ input[type="file"]::file-selector-button:hover {
     .unidad-detalle h2 {
         font-size: 1.5rem;
         padding-bottom: 0.5rem;
+    }
+
+    /* --- Tarjeta de descarga responsiva --- */
+    .descargar-recurso-card {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+        padding: 1.25rem;
+        gap: 1rem;
+    }
+
+    .recurso-info {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .btn-descargar-recurso {
+        justify-content: center;
+        width: 100%;
     }
 }
 

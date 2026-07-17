@@ -484,13 +484,52 @@ class ControladorCursos extends Controlador
                 return "<img src=\"{$rutaOUrl}\" alt=\"Recurso imagen\" style=\"max-width:100%;\" />";
 
             case 'url':
-                return "<p><a href=\"{$rutaOUrl}\" target=\"_blank\" rel=\"noopener\">Ver recurso</a></p>";
+                return "
+                <div class=\"descargar-recurso-card\">
+                    <div class=\"recurso-info\">
+                        <div class=\"recurso-icon-wrapper url-type\">
+                            <i class=\"fa-solid fa-link\"></i>
+                        </div>
+                        <div>
+                            <span class=\"recurso-filename\">Enlace externo</span>
+                            <span class=\"recurso-subtitle\">Recurso complementario en la web</span>
+                        </div>
+                    </div>
+                    <a href=\"{$rutaOUrl}\" target=\"_blank\" rel=\"noopener\" class=\"btn-descargar-recurso\"><i class=\"fa-solid fa-up-right-from-square\"></i> Abrir enlace</a>
+                </div>";
 
             case 'archivo':
-                return "<p><a href=\"{$rutaOUrl}\" download>Descargar recurso</a></p>";
-
             default:
-                return "<p><a href=\"{$rutaOUrl}\" download>Descargar recurso</a></p>";
+                $nombreArchivo = basename($rutaOUrl);
+                $ext = strtolower(pathinfo($rutaOUrl, PATHINFO_EXTENSION));
+                
+                // Determinar el ícono adecuado según la extensión
+                $iconClass = 'fa-file-arrow-down';
+                if (in_array($ext, ['zip', 'rar', '7z', 'tar', 'gz'])) {
+                    $iconClass = 'fa-file-zipper';
+                } elseif (in_array($ext, ['doc', 'docx'])) {
+                    $iconClass = 'fa-file-word';
+                } elseif (in_array($ext, ['xls', 'xlsx'])) {
+                    $iconClass = 'fa-file-excel';
+                } elseif (in_array($ext, ['ppt', 'pptx'])) {
+                    $iconClass = 'fa-file-powerpoint';
+                } elseif (in_array($ext, ['txt', 'md'])) {
+                    $iconClass = 'fa-file-lines';
+                }
+                
+                return "
+                <div class=\"descargar-recurso-card\">
+                    <div class=\"recurso-info\">
+                        <div class=\"recurso-icon-wrapper file-type\">
+                            <i class=\"fa-solid {$iconClass}\"></i>
+                        </div>
+                        <div>
+                            <span class=\"recurso-filename\">{$nombreArchivo}</span>
+                            <span class=\"recurso-subtitle\">Archivo de recursos para descargar</span>
+                        </div>
+                    </div>
+                    <a href=\"{$rutaOUrl}\" download class=\"btn-descargar-recurso\"><i class=\"fa-solid fa-download\"></i> Descargar archivo</a>
+                </div>";
         }
     }
 
