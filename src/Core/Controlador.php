@@ -4,20 +4,23 @@ namespace PAW\src\Core;
 
 use PAW\src\Core\Modelo;
 use PAW\src\Core\Database\QueryBuilder;
+use Monolog\Logger;
 
 class Controlador{
     public string $viewsDir;
 
     protected Config $config;
+    protected Logger $logger;
     public array $menu;
 
     public ?string $modelo = null;
     protected ?Modelo $modeloInstancia = null;
 
-    public function __construct(Config $config)
+    public function __construct(Config $config, Logger $logger)
     {
         global $connection;
         $this->config = $config;
+        $this->logger = $logger;
         $this->viewsDir = __DIR__ . "/../App/views/";
         $this->menu = [
             [

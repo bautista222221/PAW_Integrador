@@ -3,6 +3,7 @@
 namespace PAW\src\App\Controlador;
 use PAW\src\Core\Controlador;
 use PAW\src\App\Modelos\ColeccionCursos;
+use PAW\src\Core\Services\CloudinaryService;
 
 class ControladorCursos extends Controlador
 {
@@ -106,6 +107,8 @@ class ControladorCursos extends Controlador
 
         $contenido = $this->embedRecurso($modulo["tipo"], $modulo["url"]);
         $this->modeloInstancia->marcarCompletado($moduloId, $cursoId, $usuarioId);
+        
+        $titulo = "PAD - " . ($modulo["titulo"] ?? "Unidad");
         require $this->viewsDir . 'ver-unidad.view.php';
     }
 
@@ -133,7 +136,16 @@ class ControladorCursos extends Controlador
         $duracion = (int) $request->get("duracion");
 
         // Imagen del curso
-        $rutaImagenCurso = $this->procesarArchivoSubido($_FILES['imagen'] ?? []);
+        $rutaImagenCurso = null;
+        if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] !== UPLOAD_ERR_NO_FILE) {
+            if ($_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
+                $rutaImagenCurso = $this->procesarArchivoSubido($_FILES['imagen']);
+            } else {
+                $this->logger->error("Error PHP al subir imagen de portada: " . $_FILES['imagen']['error']);
+                echo "<script>alert('⚠️ Error al subir la imagen del curso (Código: " . $_FILES['imagen']['error'] . "). Comprueba el tamaño del archivo.'); window.history.back();</script>";
+                return;
+            }
+        }
 
         $datosCurso = [
             'titulo' => $tituloCurso,
@@ -269,10 +281,16 @@ class ControladorCursos extends Controlador
 
         // Imagen del curso (preservar anterior si no se sube una nueva)
         $rutaImagenCurso = $curso->campos['imagen'];
-        if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === 0) {
-            $rutaSubidaImagen = $this->procesarArchivoSubido($_FILES['imagen']);
-            if ($rutaSubidaImagen) {
-                $rutaImagenCurso = $rutaSubidaImagen;
+        if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] !== UPLOAD_ERR_NO_FILE) {
+            if ($_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
+                $rutaSubidaImagen = $this->procesarArchivoSubido($_FILES['imagen']);
+                if ($rutaSubidaImagen) {
+                    $rutaImagenCurso = $rutaSubidaImagen;
+                }
+            } else {
+                $this->logger->error("Error PHP al editar imagen de portada: " . $_FILES['imagen']['error']);
+                echo "<script>alert('⚠️ Error al subir la imagen del curso (Código: " . $_FILES['imagen']['error'] . "). Comprueba el tamaño del archivo.'); window.history.back();</script>";
+                return;
             }
         }
 
@@ -554,9 +572,20 @@ class ControladorCursos extends Controlador
         $extensionesProhibidas = ['php', 'phtml', 'php3', 'php4', 'php5', 'php7', 'php8', 'phar', 'sh', 'exe', 'cgi', 'pl', 'jsp', 'asp', 'aspx', 'fcgi'];
         if (in_array($ext, $extensionesProhibidas)) {
             $ext = 'txt'; // Desarmar el script convirtiéndolo en texto plano inocuo
+            $name = pathinfo($name, PATHINFO_FILENAME) . '.txt';
         }
 
-        // Generar un nombre único aleatorio para evitar colisiones y sobrescritura de archivos en public/uploads/
+        // --- MIGRACIÓN A CLOUDINARY ---
+        // Intentar subir a Cloudinary si está configurado en el .env
+        $cloudinary = new CloudinaryService($this->config, $this->logger);
+        $urlNube = $cloudinary->subirArchivo($tmpName, $name);
+        
+        if ($urlNube) {
+            return $urlNube; // Retorna la URL de internet segura
+        }
+
+        // --- FALLBACK LOCAL ---
+        // Si falló Cloudinary o no estaba configurado, guardar localmente en el volumen del disco del contenedor
         $nombreUnico = uniqid('file_', true) . '_' . md5($name) . '.' . $ext;
         $carpetaImagenes = __DIR__ . '/../../../public/uploads/';
         $destino = $carpetaImagenes . $nombreUnico;

@@ -26,7 +26,7 @@ $whoops->register();
 
 $request = new Request;
 
-$router = new Router([$config]);
+$router = new Router([$config, $log]);
 $router->setLogger($log);
 $router->get("/", "ControladorPagina@index");
 $router->get('/faq', 'ControladorPagina@faq');

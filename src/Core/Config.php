@@ -30,6 +30,8 @@ class Config{
         $this->configs["IA_PROVIDER"] = getenv("IA_PROVIDER") ?? "gemini";
         $this->configs["IA_MODEL"] = getenv("IA_MODEL") ?? "gemini-1.5-flash";
         $this->configs["IA_DEBUG"] = (getenv("IA_DEBUG") === 'true' || getenv("IA_DEBUG") === '1');
+        $this->configs["CLOUDINARY_CLOUD_NAME"] = getenv("CLOUDINARY_CLOUD_NAME") ?? "";
+        $this->configs["CLOUDINARY_UPLOAD_PRESET"] = getenv("CLOUDINARY_UPLOAD_PRESET") ?? "";
     }
 
     public function get(string $key): mixed
