@@ -51,6 +51,8 @@ $router->get("/login", "ControladorUsuarios@login");
 $router->post("/login", "ControladorUsuarios@procesarLogin");
 $router->get("/register", "ControladorUsuarios@register");
 $router->post("/register", "ControladorUsuarios@procesarRegistro");
+$router->get("/recuperar-contrasenia", "ControladorUsuarios@recuperarContrasenia");
+$router->post("/recuperar-contrasenia", "ControladorUsuarios@procesarRecuperarContrasenia");
 $router->get("/user-profile", "ControladorUsuarios@userProfile");
 $router->get("/logout", "ControladorUsuarios@logout");
 $router->post("/modelo-ia", "ControladorCursos@modeloIA");

@@ -239,34 +239,37 @@ class ControladorUsuarios extends Controlador
         </script>";
     }
 
-    public function recuperarContraseña()
+    public function recuperarContrasenia()
     {
-        $titulo = 'PAWPrints - Recuperar contraseña';
+        $titulo = 'PAD - Recuperar contraseña';
         $htmlClass = "mi-cuenta-pages";
-        require $this->viewsDir . 'recuperar-contraseña.view.php';
+        require $this->viewsDir . 'recuperar-contrasenia.view.php';
     }
 
-    public function procesarRecuperarContraseña()
+    public function procesarRecuperarContrasenia()
     {
-        // Recoger los datos del formulario
-        $email = $_POST['inputEmail'];
-        $archivo = __DIR__ . "/../../login.txt";
+        global $request;
+        $email = trim($request->get('inputEmail') ?? '');
 
-        $lineas = file($archivo, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        $emailEncontrado = false;
-
-        foreach ($lineas as $linea) {
-            list($id, $emailArchivo, $passArchivo, $nombre, $apellido) = explode('|', trim($linea));
-            if ($email === $emailArchivo) {
-                $emailEncontrado = true;
-                break;
-            }
+        if (empty($email)) {
+            echo "<script>alert('⚠️ Por favor ingresá un correo electrónico válido'); window.history.back();</script>";
+            return;
         }
 
-        if ($emailEncontrado) {
-            echo "✅ Se ha enviado un enlace para restablecer tu contraseña a tu correo electrónico.";
+        // Consultar la base de datos para ver si el correo existe
+        $resultados = $this->modeloInstancia->queryBuilder->select('usuarios', ['correo' => $email]);
+
+        if (!empty($resultados)) {
+            // El correo electrónico existe.
+            echo "<script>
+                alert('✅ Se ha enviado un enlace para restablecer tu contraseña a tu correo electrónico.');
+                window.location.href = '/login';
+            </script>";
         } else {
-            echo "❌ El email no está registrado.";
+            echo "<script>
+                alert('❌ El correo electrónico ingresado no está registrado.');
+                window.history.back();
+            </script>";
         }
     }
 }

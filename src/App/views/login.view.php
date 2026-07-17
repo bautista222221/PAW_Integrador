@@ -33,7 +33,7 @@
                     Recuérdame
                 </label>
                 <button class="button-log" type="submit">Acceder</button>
-                <a href="/recuperar-contraseña">¿Olvidaste tu contraseña?</a>
+                <a href="/recuperar-contrasenia">¿Olvidaste tu contraseña?</a>
                 <a href="/register">Registrarme</a>
             </form>
         </section>

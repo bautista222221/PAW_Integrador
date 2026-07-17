@@ -19,6 +19,6 @@ COPY . .
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 RUN composer install
 
-EXPOSE 8888
+EXPOSE 8000
 
-CMD ["php", "-S", "0.0.0.0:8888", "-t", "public"]
+CMD ["php", "-S", "0.0.0.0:8000", "-t", "public"]

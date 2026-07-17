@@ -4,8 +4,6 @@
 
 ### **Integrantes**
 
-- Buzzo Marcelo, Rocco   |   Legajo: 190292
-- Cardona, Eliana        |   Legajo: 118441
 - Pereyra Buch, Bautista |   Legajo 193177
 
 ## Plataforma de Aprendizaje Dinámico
@@ -25,12 +23,12 @@ La inteligencia artificial se empleará como herramienta de apoyo, sugiriendo ma
     - Corrección automática en base a respuestas predefinidas por el instructor.
 3. **Sugerencias de contenido con IA:**
     - Recomendaciones automáticas de videos, artículos y recursos tras completar un módulo.
-4. **Foro de discusión (en evaluación):**
-    - Posible implementación de un espacio de interacción entre usuarios.
+4. **Foro de discusión:**
+    - Implementación de un espacio de interacción entre usuarios.
 5. **Tecnologías a utilizar:**
     - Frontend: HTML5, CSS, JavaScript.
     - Backend: PHP.
-    - Base de datos: A definir (posiblemente MySQL o PostgreSQL).
+    - Base de datos: PostgreSQL.
 
 ---
 
@@ -38,9 +36,9 @@ La inteligencia artificial se empleará como herramienta de apoyo, sugiriendo ma
 
 ### **1. Autenticación y Gestión de Usuarios**
 
-- Registro de usuarios (estudiantes e instructores).
+- Registro de usuarios.
 - Inicio de sesión y recuperación de contraseña.  
-- Gestión de perfil y roles de usuario.  
+- Gestión de perfil y roles de usuario.
 
 ### **2. Gestión de Cursos y Módulos**
 
@@ -50,7 +48,7 @@ La inteligencia artificial se empleará como herramienta de apoyo, sugiriendo ma
 ### **3. Evaluaciones y Corrección de Ejercicios**
 
 - Creación y evaluación de ejercicios.
-- Registro del desempeño del usuario.  
+- Registro del desempeño del usuario.
 
 ### **4. IA para Sugerencia de Contenidos**  
 
@@ -61,18 +59,13 @@ La inteligencia artificial se empleará como herramienta de apoyo, sugiriendo ma
 - Visualización de cursos inscriptos y progreso.  
 - Historial de evaluaciones y resultados.  
 
-### **6. Foro de Discusión (Opcional)**
+### **6. Foro de Discusión**
 
-- Creación y moderación de temas de discusión.  
+- Creación de temas de discusión.
 
-### **7. Administración del Sistema (Instructores/Admins)**  
+### **7. Administración del Sistema (Instructores)**
 
-- Administración de cursos, usuarios y evaluaciones.  
-
-#### **Infraestructura necesaria**
-- **Hosting web:** Un servidor que soporte PHP y la base de datos elegida.
-- **Dominio web:** URL para acceder a la plataforma.
-- **Almacenamiento y ancho de banda.**.
+- Administración de cursos, usuarios y evaluaciones.
 
 #### **Recursos humanos**
 - **Desarrolladores:** Responsables de frontend y backend.
@@ -187,39 +180,65 @@ http://localhost:8000
 
 #### `php.ini`
 
-Verificar que las siguientes líneas estén habilitadas:
+Verificar que las siguientes líneas estén habilitadas en el entorno local de PHP:
 
 ```ini
-extension=pdo_mysql
+extension=pdo_pgsql
+extension=pgsql
 display_errors = On
 error_reporting = E_ALL
 ```
 
 ## Funcionamiento de la Aplicación
 
-Las rutas principales están definidas en `router.php`. Algunas de ellas incluyen:
+Las rutas principales de la aplicación están definidas en el archivo [bootstrap.php](file:///home/bautista/Documentos/PAW-Integrador/src/bootstrap.php). Algunas de las rutas más relevantes son:
 
-* `/` → Página de inicio.
-* `/cursos` → Lista de cursos.
-* `/agregar-curso` → Formulario para agregar un curso.
-* `/agregar-unidades` → Formulario para agregar unidades.
-* `/login` y `/register` → Autenticación de usuarios.
+* `/` → Página de inicio de la plataforma.
+* `/cursos` → Catálogo y listado de cursos disponibles.
+* `/curso?id={ID}` → Visualización del temario, módulos, recomendaciones y foro de un curso específico.
+* `/user-profile` → Panel personal del estudiante con sus datos de perfil y certificados obtenidos.
+* `/login` / `/register` → Autenticación y registro de usuarios.
+* `/agregar-curso` / `/editar-curso` → Herramientas de administración para instructores.
 
-Controladores principales:
+Controladores principales ubicados en [Controlador](file:///home/bautista/Documentos/PAW-Integrador/src/App/Controlador):
 
-* `ControladorPagina`: maneja las vistas y operaciones generales.
-* `ControladorError`: maneja errores como `404` y `500`.
+* `ControladorPagina`: Maneja las vistas principales e informativas (FAQ, Soporte, Inicio).
+* `ControladorCursos`: Gestiona el temario, carga de cursos y unidades, y sugerencias automáticas de IA.
+* `ControladorEvaluacion`: Controla la creación, edición y corrección automática de exámenes.
+* `ControladorUsuarios`: Administra el registro, login y restablecimiento de contraseña de usuarios.
+* `ControladorError`: Genera respuestas para códigos HTTP `404` y `500`.
 
 
-## Despliegue en Render con Docker
+## Ejecución y Despliegue con Docker
 
-Para subir esta aplicación a internet, se utilizará Render con Docker, el dominio asignado fue: https://paw-integrador.onrender.com/.
+La aplicación cuenta con soporte completo para contenedores Docker mediante un archivo `docker-compose.yml`.
 
-Base de datos:
-   Usamos el diagrama `modelo.png` como guía, actualmente guardamos los datos de usuarios en usuarios.txt y la información de los cursos en cursos.json.
+### Pasos para iniciar con Docker:
+
+1. Asegurate de tener configurado tu archivo `.env` en la raíz del proyecto.
+2. Compilá y levantá los contenedores usando el comando:
+   ```bash
+   docker compose up --build
+   ```
+3. Accedé a la aplicación desde tu navegador en:
+   ```
+   http://localhost:8080
+   ```
+
+### Despliegue en Render
+El proyecto está configurado para desplegarse mediante Docker en Render. El dominio de producción asignado es: https://paw-integrador.onrender.com/.
+
+## Base de Datos
+
+La plataforma utiliza una base de datos relacional **PostgreSQL** para persistir la información (usuarios, cursos, temas, módulos, progresos, inscripciones, evaluaciones, preguntas y comentarios).
+
+Las migraciones de la base de datos se gestionan mediante **Phinx**. Para ejecutar las migraciones localmente:
+```bash
+vendor/bin/phinx migrate
+```
 
 ## Registro de errores
 
-* Todos los errores se registran en el directorio `logs/`.
-* El sistema utiliza Monolog para registrar eventos importantes.
-* Whoops proporciona trazas detalladas en entorno de desarrollo.
+* Todos los errores y logs de depuración (incluyendo consultas de la IA) se registran en el directorio [log/](log/).
+* El sistema utiliza Monolog para registrar eventos importantes de seguridad y llamadas externas.
+* Whoops proporciona trazas detalladas para depuración en entornos locales de desarrollo.
